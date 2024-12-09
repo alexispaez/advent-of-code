@@ -26,10 +26,63 @@ procedure Day_5_1 is
         Element_Type    => Rule_Vectors.Vector);
    use Rule_Maps;
 
+   function Is_Pair_ordered (Rules  : Rule_Maps.Map;
+                             Page   : Page_Number;
+                             Before : Page_Number) return Boolean is
+   begin
+      if Rules.Contains (Page) then
+         for I in Rules (Page).Iterate loop
+            if Rules (Page) (To_Index (I)) = Rule (Before) then
+               return False;
+            end if;
+         end loop;
+      end if;
+      return True;
+   end Is_Pair_ordered;
+
+   function Is_Update_Ordered (Rules  : Rule_Maps.Map;
+                               Update : Page_Vectors.Vector) return Boolean is
+   begin
+      --  Check all possible pairs in the update
+      for I in Update.First_Index .. Update.Last_Index loop
+         for J in I + 1 .. Update.Last_Index loop
+            --  Check if the pair is in order
+            if not Is_Pair_ordered (Rules, Update (J), Update (I)) then
+               return False;
+            end if;
+         end loop;
+      end loop;
+
+      return True;
+   end Is_Update_Ordered;
+
+   procedure Order_Update (Rules  : Rule_Maps.Map;
+                           Update : in out Page_Vectors.Vector) is
+   begin
+      --  Check all possible pairs in the update
+      for I in Update.First_Index .. Update.Last_Index loop
+         for J in I + 1 .. Update.Last_Index loop
+            --  Check if the pair is in order
+            if not Is_Pair_ordered (Rules, Update (J), Update (I)) then
+               --  Swap the pair
+               declare
+                  Page : constant Page_Number := Update (J);
+               begin
+                  Update (J) := Update (I);
+                  Update (I) := Page;
+               end;
+            end if;
+         end loop;
+      end loop;
+
+   end Order_Update;
+
    F : File_Type;
    Line_Count : Natural := 0;
    Reading_Rules : Boolean := True;
    Rules : Rule_Maps.Map;
+   Sum : Natural := 0;
+   Sum_Incorrect : Natural := 0;
 begin
    Open (F, In_File, "input.txt");
 
@@ -82,34 +135,35 @@ begin
                   end if;
                end loop;
 
-               for I in Update.First_Index .. Update.Last_Index loop
-                  for J in I + 1 .. Update.Last_Index loop
-                     Put ("(" & Page_Number'Image (Update (I)));
-                     Put (Page_Number'Image (Update (J)) & ")");
-                  end loop;
-                  New_Line;
-               end loop;
-               New_Line;
+               if Is_Update_Ordered (Rules, Update) then
+                  --  Get middle number and sum
+                  declare
+                     use type Ada.Containers.Count_Type;
+                     Mid_Idx : constant Positive
+                       := Integer (Update.Length) / 2 + 1;
+                  begin
+                     Sum := @ + Natural (Update.Element (Mid_Idx));
+                  end;
+               else
+                  --  Order the incorrectly ordered updates and sum
+                  Order_Update (Rules, Update);
+                  declare
+                     use type Ada.Containers.Count_Type;
+                     Mid_Idx : constant Positive
+                       := Integer (Update.Length) / 2 + 1;
+                  begin
+                     Sum_Incorrect := @ + Natural (Update.Element (Mid_Idx));
+                  end;
+               end if;
 
-               exit;
-               --  --  Print update to check
-               --  for N of Update loop
-               --     Put (N'Image);
-               --  end loop;
-               --  New_Line;
             end;
          end if;
       end;
    end loop;
 
-   --  for R in Rules.Iterate loop
-   --     Put (Key (R)'Image & ": ");
-   --     for I in Rules (R).Iterate loop
-   --        Put (Rule'Image (Rules (R)(To_Index(I))));
-   --     end loop;
-   --     New_Line;
-   --  end loop;
-   Put_Line ("Read updates. Line: " & Line_Count'Image);
-
    Close (F);
+
+   Put_Line ("Read updates. Line: " & Line_Count'Image);
+   Put_Line ("Total ordered sum: " & Sum'Image);
+   Put_Line ("Total incorrectly ordered sum: " & Sum_Incorrect'Image);
 end Day_5_1;
