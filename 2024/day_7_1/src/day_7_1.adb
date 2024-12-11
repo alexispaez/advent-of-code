@@ -44,7 +44,7 @@ procedure Day_7_1 is
       Element_Type => Operator_Vectors.Vector);
 
    --  Function to generate all combinations
-   function Generate_All_Combinations (N : Positive)
+   function Generate_All_Combinations (S : String; N : Positive)
                                        return Combination_Vectors.Vector is
       Result : Combination_Vectors.Vector :=
                  Combination_Vectors.Empty_Vector;
@@ -58,14 +58,12 @@ procedure Day_7_1 is
             --  Add the fully constructed combination to the result
             Result.Append (Current);
          else
-            --  Generate two branches: one with '+' and one with '*'
-            Next_Current := Current;
-            Next_Current.Append ('+');
-            Add_Combinations (Next_Current, Depth + 1);
-
-            Next_Current := Current;
-            Next_Current.Append ('*');
-            Add_Combinations (Next_Current, Depth + 1);
+            --  Generate branches for each character
+            for C of S loop
+               Next_Current := Current;
+               Next_Current.Append (C);
+               Add_Combinations (Next_Current, Depth + 1);
+            end loop;
          end if;
       end Add_Combinations;
 
@@ -77,7 +75,7 @@ procedure Day_7_1 is
 
    F : File_Type;
    Total_Calibration : Long_Long_Integer := 0;
-   Num_Operators : Natural := 0;
+   Num_Operators     : Natural := 0;
 begin
    --  Open and read the report file
    Open (F, In_File, "input.txt");
@@ -89,8 +87,9 @@ begin
          Numbers    : Natural_Vectors.Vector;
          Combinations : Combination_Vectors.Vector :=
                              Combination_Vectors.Empty_Vector;
+         Equation_Proved : Boolean := False;
       begin
-         --  Get test value first
+         --  Get the equation test value
          Start := Index (Line (Start .. Line'Last), ":");
          if Start /= 0 then
             Test_Value :=
@@ -100,10 +99,10 @@ begin
          end if;
          --  Get the numbers for the equation
          Get_Numbers (Trim (Line (Start + 1 .. Line'Last), Both), Numbers);
-         --  Get the operators
+         --  Generate the operator combinations fot the equation
          Num_Operators := Numbers.Last_Index;
          --  TODO: Optimise the operator combinations generation
-         Combinations := Generate_All_Combinations (Num_Operators);
+         Combinations := Generate_All_Combinations ("+*", Num_Operators);
 
          --  Calculate all possible combinations of the equation
          for I in Combinations.First_Index .. Combinations.Last_Index loop
@@ -125,12 +124,56 @@ begin
                end loop;
 
                if Total = Test_Value then
+                  Equation_Proved := True;
                   Total_Calibration := @ + Total;
                   --  Exit this loop as equation proven true
                   exit;
                end if;
             end;
          end loop;
+
+         if Equation_Proved = False then
+            --  Try with concatenation operator
+            Combinations := Generate_All_Combinations ("+*|", Num_Operators);
+            --  Calculate all possible combinations of the equation
+            for I in Combinations.First_Index .. Combinations.Last_Index loop
+               declare
+                  Operators : constant Operator_Vectors.Vector :=
+                                Combinations.Element (I);
+                  Num_Index : constant Natural := Numbers.First_Index;
+                  Op_Index  : Natural := Operators.First_Index;
+                  Total     : Long_Long_Integer :=
+                                Long_Long_Integer
+                                  (Numbers.Element (Num_Index));
+               begin
+                  for N in Numbers.First_Index .. Numbers.Last_Index - 1 loop
+                     if Operators (Op_Index) = '+' then
+                        Total := @ +
+                          Long_Long_Integer (Numbers.Element (N + 1));
+                     elsif Operators (Op_Index) = '*' then
+                        Total := @ *
+                          Long_Long_Integer (Numbers.Element (N + 1));
+                     elsif Operators (Op_Index) = '|' then
+                        declare
+                           Concat : String := Trim (Total'Image, Both) &
+                                      Trim
+                                        (Numbers.Element (N + 1)'Image, Both);
+                        begin
+                           Total := Long_Long_Integer'Value (Concat);
+                        end;
+                     end if;
+                     Op_Index := @ + 1;
+                  end loop;
+
+                  if Total = Test_Value then
+                     Equation_Proved := True;
+                     Total_Calibration := @ + Total;
+                     --  Exit this loop as equation proven true
+                     exit;
+                  end if;
+               end;
+            end loop;
+         end if;
       end;
    end loop;
 
