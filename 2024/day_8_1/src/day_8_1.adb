@@ -75,13 +75,9 @@ procedure Day_8_1 is
       F   : File_Type;
    begin
 
-      Put_Line ("Getting map dimensions...");
-
       Get_File_Dimensions (Name, R, C);
       Rows := R;
       Columns := C;
-
-      Put_Line ("Dimensions: " & Rows'Image & Columns'Image);
 
       return M : Antenna_Map (1 .. Rows, 1 .. Columns) do
          Open (F, In_File, Name);
@@ -104,11 +100,12 @@ procedure Day_8_1 is
 
    Rows    : Y_Index := 1;
    Columns : X_Index := 1;
-   Frequencies : Frequency_Records;
-   M           : constant Antenna_Map := Load_Map ("input.txt", Rows, Columns);
-   Antinodes   : Antenna_Map := M;
+   Frequencies    : Frequency_Records;
    Antinode_Count : Natural := 0;
+   M : constant Antenna_Map := Load_Map ("input.txt", Rows, Columns);
+   Antinodes : Antenna_Map := M;
 begin
+
    for R in M'Range (1) loop
       for C in M'Range (2) loop
          declare
@@ -127,36 +124,63 @@ begin
    end loop;
 
    for F of Frequencies loop
-      --  Put (Frequency_Maps.Key (F)'Image);
+
       for Current in 1 .. F.Last_Index loop
          for Index in Current + 1 .. F.Last_Index loop
+
             --  Add each antinode for each pair of coordinates
             declare
+               --  Get the distance between antennas
                X_Delta : constant Integer :=  Integer (F (Index).X) -
                            Integer (F (Current).X);
                Y_Delta : constant Integer :=  Integer (F (Index).Y) -
                            Integer (F (Current).Y);
             begin
-               Put (X_Delta'Image);
-               Put (Y_Delta'Image);
-
-               if F (Index).X - F (Current).X > 0
-                 and then F (Index).Y - F (Current).Y > 0
+               --  First antinode
+               if Integer (F (Current).X) - X_Delta > 0
+                 and then Integer (F (Current).Y) - Y_Delta > 0
                then
                   declare
-                     Antinode_Pos : constant Coordinate :=
-                                      (F (Index).X - F (Current).X,
-                                       F (Index).Y - F (Current).Y);
+                     --  Subtract distance from first antenna
+                     Antinode_Pos : constant Coordinate
+                       := (X_Index (Integer (F (Current).X) - X_Delta),
+                           Y_Index (Integer (F (Current).Y) - Y_Delta));
                   begin
                      if In_Bounds (M, Antinode_Pos) then
-                        Antinodes (Antinode_Pos.Y, Antinode_Pos.X) := '#';
-                        Antinode_Count := @ + 1;
+                        if Antinodes (Antinode_Pos.Y,
+                                      Antinode_Pos.X) /= '#'
+                        then
+                           Antinodes (Antinode_Pos.Y, Antinode_Pos.X) := '#';
+                           Antinode_Count := @ + 1;
+                        end if;
+                     end if;
+                  end;
+               end if;
+
+               --  Second antinode
+               if Integer (F (Index).X) + X_Delta > 0
+                 and then Integer (F (Index).Y) + Y_Delta > 0
+               then
+                  declare
+                     Antinode_Pos : constant Coordinate
+                       := (X_Index (Integer (F (Index).X) + X_Delta),
+                           Y_Index (Integer (F (Index).Y) + Y_Delta));
+                  begin
+                     if In_Bounds (M, Antinode_Pos) then
+                        if Antinodes (Antinode_Pos.Y,
+                                      Antinode_Pos.X) /= '#'
+                        then
+                           Antinodes (Antinode_Pos.Y, Antinode_Pos.X) := '#';
+                           Antinode_Count := @ + 1;
+                        end if;
                      end if;
                   end;
                end if;
             end;
+
          end loop;
       end loop;
+
    end loop;
 
    Put_Line ("Antinode count: " & Antinode_Count'Image);
