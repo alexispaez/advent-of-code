@@ -1,0 +1,12 @@
+name = "day_11_1"
+description = "Advent of code day 11, part 1"
+version = "0.1.0-dev"
+
+authors = ["Jose Alexis Paez"]
+maintainers = ["Jose Alexis Paez <jose.alexis.paez.thurgood@gmail.com>"]
+maintainers-logins = ["alexispaez"]
+licenses = "MIT OR Apache-2.0 WITH LLVM-exception"
+website = ""
+tags = []
+
+executables = ["day_11_1"]
