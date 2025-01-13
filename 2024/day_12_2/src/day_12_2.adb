@@ -133,11 +133,10 @@ procedure Day_12_2 is
       end if;
    end Get_Previous_Direction;
 
-   function Get_Sides (M : Garden_Map;
-                       R : Plot_Vector_Type) return Natural is
-      Sides : Natural := 0;
+   procedure Get_Sides (M : Garden_Map;
+                        R     : Plot_Vector_Type;
+                        Sides : in out Natural) is
    begin
-      Put_Line ("get sides");
       for P in R.First_Index .. R.Last_Index loop
          for D in Direction_Type'Range loop
             declare
@@ -154,32 +153,45 @@ procedure Day_12_2 is
                then
                   --  There is a border, so check previous plot
                   --  to decide if it needs to be counted
-                  if not Is_Inbounds (M, Prev_Pos) or else
-                    (Is_Inbounds (M, Prev_Pos) and then
-                    M (Prev_Pos.Row, Prev_Pos.Column) /=
-                    M (R (P).Row, R (P).Column))
-                  then
+                  if not Is_Inbounds (M, Prev_Pos) then
+                     --  The previous plot does not exist, can count a side
                      Sides := @ + 1;
-                     Put ("Pos: " & Coordinate_Type'Image (R (P)));
-                     Put_Line ("Sides: " & Sides'Image);
-                     --  Put (" Dir: " & D'Image);
-                     --  Put (" Nex: " & Next_Pos'Image);
-                     --  Put (" Prv: " & Prev_Pos'Image);
-                     New_Line;
+                  elsif M (Prev_Pos.Row, Prev_Pos.Column) /=
+                    M (R (P).Row, R (P).Column)
+                  then
+                     --  Previous plot if of a different kind, can count side
+                     Sides := @ + 1;
+                  else
+                     --  Previous plot is of the same kind,
+                     --  need to check prev pos adjacent in original direction
+                     --  to see if it's of the same kind
+                     --  If it doesn't exist, then don't count a side
+                     --  as it has already been counted
+                     declare
+                        Adj_Pos : constant Coordinate_Type :=
+                                    Get_Next_Position (Prev_Pos, D);
+                     begin
+                        if Is_Inbounds (M, Adj_Pos) and then
+                          M (Adj_Pos.Row, Adj_Pos.Column) =
+                          M (R (P).Row, R (P).Column)
+                        then
+                           --  Adjacent plot exists and is of the same kind
+                           --  can count the side
+                           Sides := @ + 1;
+                        end if;
+                     end;
                   end if;
                end if;
             end;
          end loop;
       end loop;
-
-      return Sides;
    end Get_Sides;
 
    --  Variables for the main procedure
    Rows    : Y_Index := 1;
    Columns : X_Index := 1;
    M       : constant Garden_Map := Load_Map
-     ("../Day_12_1/input_small.txt", Rows, Columns);
+     ("../Day_12_1/input.txt", Rows, Columns);
    A       : Assigned_Map (M'Range (1), M'Range (2)) :=
                [others => [others => False]];
    Regions : Region_Vector_Type := Regions_Vectors.Empty_Vector;
@@ -205,13 +217,11 @@ begin
    --  Calculate prices
    for R of Regions loop
       declare
-         Perimeter : Natural := Get_Sides (M, R);
+         Sides : Natural := 0;
       begin
-         Price := @ + (Get_Sides (M, R) * Natural (R.Length));
-         Put_Line ("Area: " & Natural'Image (Natural (R.Length)) &
-                  " Sides: " & Perimeter'Image);
+         Get_Sides (M, R, Sides);
+         Price := @ + (Sides * Natural (R.Length));
       end;
-      exit;
    end loop;
 
    Put_Line ("Total price: " & Price'Image);
